@@ -3,6 +3,7 @@ package facebookClient
 import akka.actor
 import akka.actor.{Props, ActorRef, ActorSystem, Actor}
 import akka.event.Logging
+import facebookClient.PageProtocol.{PageRequestGetBio_Get, PageRequestRegister_Put}
 import facebookClient.protocol._
 import scala.Array._
 import scala.concurrent.duration._
@@ -61,6 +62,34 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
 
     actorRefUser ! userRequestGetAllPosts_Get(1)
     readLine()
+
+    var temp = system.actorOf(Props(new Pages(1 , 5, system )), name = "Page" + 1);
+
+    val actorRefPage = context.actorFor("akka://Facebook-Client/user/Page" + 1)
+    readLine()
+    actorRefPage ! PageRequestRegister_Put(1, " About of the Page 1 ", "General Info Of The Page 1 ")
+    readLine()
+//    actorRefPage ! PageRequestGetBio_Get(1)
+//    readLine()
+
+    actorRefUser ! userRequestPostOnAPage(1, 1, "This is First Post of Page from user 1 ")
+
+    readLine()
+
+    actorRefUser ! userRequestPostOnAPage(1, 1, "This is Second Post of Page from user 1 ")
+
+    readLine()
+
+    actorRefUser ! userRequestPostOnAPage(1, 1, "This is Third Post of Page from user 1 ")
+
+    actorRefUser ! userRequestPageFeed(1)
+
+
+    //    readLine()
+    //
+    //    actorRefUser ! userRequestGetAllPostsOnAPage_Get(1 )
+
+
     //Use the system's dispatcher as ExecutionContext
     import system.dispatcher
 

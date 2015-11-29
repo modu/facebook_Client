@@ -19,7 +19,7 @@ object PageProtocol {
 
 
     /*Messages sent from Pages to Server Side */
-  case class RegisterPageRequest(id :Int, name :String , email :String )
+  case class RegisterPageRequest(creatorID: Int, about: String, generel_info: String)
 
 
   object RegisterPageRequestProtocol extends json.DefaultJsonProtocol with SprayJsonSupport {

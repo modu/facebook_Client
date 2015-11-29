@@ -2,8 +2,6 @@ package facebookClient
 
 import akka.event.Logging
 import facebookClient.protocol._
-import spray.http.{ContentType, HttpEntity, HttpRequest, ContentTypes}
-import scala.util.{Success, Failure}
 import akka.actor.{PoisonPill, Actor, ActorRef, ActorSystem}
 import spray.client.pipelining._
 import scala.util.{Failure, Success}
@@ -29,9 +27,6 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   * Albums
   * FriendList
   * */
-  //  implicit val system = ActorSystem("simple-spray-client")
-  //
-  //  val log = Logging(system, getClass)
 
   def receive = {
     case userRequestRegister_Put(id, name, email) => {
@@ -52,6 +47,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     case userRequestGetAllPosts_Get(id) => {
       userrequestGetAllPosts_GetF(id)
     }
+    case userRequestGetAllPostsOnAPage_Get() => {
+      userRequestGetAllPostsOnAPage_GetF(1) /*Unused apis */
+    }
+    case userRequestPageFeed(pageId) => {
+      userRequestGetAllPostsOnAPage_GetF(pageId)
+    }
+
     case userRequestFriendRequest_Post(optionalMessage) => {
       /*Friend next three users */
       userSendFriendRequest_post(id, id + 1, optionalMessage)
@@ -59,7 +61,36 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       userSendFriendRequest_post(id, id + 3, optionalMessage)
       //      killYourself
     }
+    case userRequestPostOnAPage(pageId: Int, creatorID: Int, message: String) => {
+      val actorRefPage = context.actorFor("akka://Facebook-Client/user/Page" + pageId)
+      if (actorRefPage == None) {
+        log.error("No such page created on server side ")
+      }
+      else {
+        userPostMessageOnAPage_Put(pageId: Int, creatorID: Int, message: String)
+      }
+    }
 
+  }
+
+  def userRequestGetAllPostsOnAPage_GetF(id :Int) = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    import GetBioProtocol._
+    val response = clientPipeline {
+      Get(url + "User/Page/Feed/" + id)
+    }
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.debug("success: \n" + resp.message)
+      }
+    }
   }
 
   def userrequestGetAllPosts_GetF(id: Int) = {
@@ -88,14 +119,11 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     val startTimestamp = System.currentTimeMillis()
     import GetBioProtocol._
     val response = clientPipeline {
-      //      Get(url + "User/GetBio/", GetBio(id))
       Get(url + "User/GetBio/" + id)
     }
-    /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
       case Failure(ex) => {
         ex.printStackTrace()
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
@@ -143,20 +171,37 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     val response = clientPipeline {
       Put(url + "User/Post/" + id, UserPostMessageOwnWall(id, message))
     }
-    /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
       case Failure(ex) => {
         ex.printStackTrace()
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.debug("success: " + resp.status + "  " + resp.message)
-        log.info(s"User $name Posted the message $message ")
+        log.info("success: " + resp.status + "  " + resp.message)
       }
     }
   }
+
+  def userPostMessageOnAPage_Put(pageId: Int, creatorID: Int, message: String) = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    import UserPostMessageOnAPageProtocol._
+    val response = clientPipeline {
+      Put(url + "User/Post/OnPage", UserPostMessageOnAPage(pageId, creatorID, message))
+    }
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("success: " + resp.status + "  " + resp.message)
+      }
+    }
+  }
+
 
   def userSendFriendRequest_post(id: Int, friendsID: Int, message: String): Unit = {
     val clientPipeline = sendReceive
@@ -165,11 +210,9 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     val response = clientPipeline {
       Post(url + "User/FriendRequest/" + id, FriendRequest(id, friendsID, message))
     }
-    /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
       case Failure(ex) => {
         ex.printStackTrace()
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {

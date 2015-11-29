@@ -2,7 +2,7 @@ package facebookClient
 
 import akka.actor.{ActorSystem, Actor}
 import akka.event.Logging
-import facebookClient.PageProtocol.{RegisterPageRequest, PageRequestGetAllPosts_Get, PageRequestGetBio_Get, PageRequestRegister_Put}
+import facebookClient.PageProtocol._
 import spray.http.{ContentType, HttpEntity, HttpRequest, ContentTypes}
 import scala.util.{Success, Failure}
 import akka.actor.{PoisonPill, Actor, ActorRef, ActorSystem}
@@ -28,6 +28,8 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
   var name: String = ""
   var email: String = ""
   val url: String = "http://127.0.0.1:9090/"
+  log.info( " \n ************* Page created on CLient side \n ")
+  log.info(" \n\n" +self.path + " \n\n")
   /*Admin of a page
   * Pictures associated
   * Albums
@@ -50,10 +52,7 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
       log.info("In the PageRequestGetAllPosts_Get request of Pages Client side")
       PagerequestGetAllPosts_GetF(userID)
     }
-
   }
-
-
 
   def getBioPage_Get(id: Int): Unit = {
     val clientPipeline = sendReceive
@@ -75,7 +74,8 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
 
   def registerPage_Put(creatorID: Int, about: String, general_info: String): Unit = {
     val clientPipeline = sendReceive
-    val startTimestamp = System.currentTimeMillis()
+    //val startTimestamp = System.currentTimeMillis()
+    import RegisterPageRequestProtocol._
     val requestForRegister = RegisterPageRequest(creatorID, about, general_info)
     val response = clientPipeline {
       Put(url + "Page/Register", requestForRegister)
@@ -94,7 +94,6 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
   }
 
 /*Public api for getting all the posts of a Page*/
-
   def PagerequestGetAllPosts_GetF(PageID: Int) = {
     val clientPipeline = sendReceive
     val startTimestamp = System.currentTimeMillis()

@@ -16,6 +16,11 @@ object protocol {
 
   case class userRequestGetAllPosts_Get(id :Int)
 
+  case class userRequestPostOnAPage(pageId :Int , creatorID :Int, message :String)
+
+  case class userRequestGetAllPostsOnAPage_Get()
+
+  case class userRequestPageFeed(pageId :Int)
 
   /*Messages sent by User*/
   case class RegisterUserRequest(id: Int, name: String, email: String)
@@ -26,6 +31,12 @@ object protocol {
 
   case class GetBio(id: Int)
 
+  case class UserPostMessageOnAPage(pageId :Int , CreatorID :Int , message :String)
+
+
+  object UserPostMessageOnAPageProtocol extends DefaultJsonProtocol with SprayJsonSupport {
+    implicit val format1 = jsonFormat3(UserPostMessageOnAPage.apply)
+  }
 
 
   object RegisterUserRequestProtocol extends DefaultJsonProtocol with SprayJsonSupport {
@@ -43,6 +54,7 @@ object protocol {
   object GetBioProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val format = jsonFormat1(GetBio.apply)
   }
+
 
 }
 
