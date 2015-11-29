@@ -24,7 +24,6 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   var name: String = ""
   var email: String = ""
   val url: String = "http://127.0.0.1:9090/"
-
   /*Admin of a page
   * Pictures associated
   * Albums
@@ -38,42 +37,59 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     case userRequestRegister_Put(id, name, email) => {
       /*Other things like public key need to be sent ?*/
       registerUser_Put(id, name, email)
-      killYourself
+      //      killYourself
+    }
+    case userRequestGetBio_Get(id) => {
+      /**/
+      log.info("In the userRequestGetBio_Get request of User Client side")
+      getBioUser_Get(id)
+      //      killYourself
     }
     case userRequestWallMessageUpdate_Post(id, message) => {
       userPostMessageOwnWall_Put(id, message)
-      killYourself
+      //      killYourself
     }
-    case userRequestFriendRequest_Post( optionalMessage) => {
-
+    case userRequestGetAllPosts_Get(id) => {
+      userrequestGetAllPosts_GetF(id)
+    }
+    case userRequestFriendRequest_Post(optionalMessage) => {
       /*Friend next three users */
-      userSendFriendRequest_post(id, id+1, optionalMessage)
-      userSendFriendRequest_post(id, id+2, optionalMessage) /*Have to maintain consistency that two users are already friends and inform user about it*/
-      userSendFriendRequest_post(id, id+3, optionalMessage)
-
-      killYourself
+      userSendFriendRequest_post(id, id + 1, optionalMessage)
+      userSendFriendRequest_post(id, id + 2, optionalMessage) /*Have to maintain consistency that two users are already friends and inform user about it*/
+      userSendFriendRequest_post(id, id + 3, optionalMessage)
+      //      killYourself
     }
-
-//    case PostUser(message: String) =>
-//      postRequest(message)
-//      killYourself
-//    case GetUser(userID) => {
-//      getRequest()
-//      killYourself
-//    }
-    //    case PostMessage(message :String ,userId :Int) => {
-    //      postMessageUser(message , userId)
-    //      killYourself
-    //    }
 
   }
 
-  def registerUser_Put(id: Int, name: String, email: String): Unit = {
+  def userrequestGetAllPosts_GetF(id: Int) = {
     val clientPipeline = sendReceive
     val startTimestamp = System.currentTimeMillis()
-    val requestForRegister = RegisterUserRequest(id, name, email)
+    import GetBioProtocol._
     val response = clientPipeline {
-      Put(url + "User/Register/" + id, requestForRegister)
+      Get(url + "User/Post/" + id)
+    }
+    /* s"{ UserId : $id , userName : $name , email : $email }"  */
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.debug("success: \n" + resp.message)
+      }
+    }
+  }
+
+  def getBioUser_Get(id: Int): Unit = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    import GetBioProtocol._
+    val response = clientPipeline {
+      //      Get(url + "User/GetBio/", GetBio(id))
+      Get(url + "User/GetBio/" + id)
     }
     /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
@@ -88,7 +104,32 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
         log.info(s"User $name Is registered ")
       }
     }
+
   }
+
+  def registerUser_Put(id: Int, name: String, email: String): Unit = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    import RegisterUserRequestProtocol._
+    val requestForRegister = RegisterUserRequest(id, name, email)
+    val response = clientPipeline {
+      Put(url + "User/Register", requestForRegister)
+    }
+    /* s"{ UserId : $id , userName : $name , email : $email }"  */
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("success: " + resp.status + resp.message)
+        //log.info(s"User $name Is registered ")
+      }
+    }
+  }
+
   /*TODO: unregister a user or delete  a user
   * TODO: Delete a post or unshare a post
   * */
@@ -96,6 +137,9 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   def userPostMessageOwnWall_Put(id: Int, message: String): Unit = {
     val clientPipeline = sendReceive
     val startTimestamp = System.currentTimeMillis()
+    import UserPostMessageOwnWallProtocol._
+    var temp = UserPostMessageOwnWall(id, message)
+    println(" JSON *********************\n" + UserPostMessageOwnWall(id, message))
     val response = clientPipeline {
       Put(url + "User/Post/" + id, UserPostMessageOwnWall(id, message))
     }
@@ -114,9 +158,10 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
   }
 
-  def userSendFriendRequest_post(id :Int , friendsID : Int, message: String): Unit = {
+  def userSendFriendRequest_post(id: Int, friendsID: Int, message: String): Unit = {
     val clientPipeline = sendReceive
     val startTimestamp = System.currentTimeMillis()
+    import FriendRequestProtocol._
     val response = clientPipeline {
       Post(url + "User/FriendRequest/" + id, FriendRequest(id, friendsID, message))
     }
@@ -136,25 +181,25 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   }
 
 
-//  def postRequest(message: String) = {
-//    val clientPipeline = sendReceive
-//    val startTimestamp = System.currentTimeMillis()
-//
-//    val response = clientPipeline {
-//      Post(url + "User/" + id, HttpEntity(ContentTypes.`application/json`, message))
-//    }
-//    response onComplete {
-//      case Failure(ex) => {
-//        ex.printStackTrace()
-//        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-//      }
-//      case Success(resp) => {
-//        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-//        println("success: " + resp.status + resp.message)
-//      }
-//    }
-//
-//  }
+  //  def postRequest(message: String) = {
+  //    val clientPipeline = sendReceive
+  //    val startTimestamp = System.currentTimeMillis()
+  //
+  //    val response = clientPipeline {
+  //      Post(url + "User/" + id, HttpEntity(ContentTypes.`application/json`, message))
+  //    }
+  //    response onComplete {
+  //      case Failure(ex) => {
+  //        ex.printStackTrace()
+  //        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+  //      }
+  //      case Success(resp) => {
+  //        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+  //        println("success: " + resp.status + resp.message)
+  //      }
+  //    }
+  //
+  //  }
 
   //  def postRequest(message :String ) = {
   //    val clientPipeline = sendReceive
@@ -172,23 +217,23 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   //    }
   //  }
 
-//  def getRequest() = {
-//    val clientPipeline = sendReceive
-//    val startTimestamp = System.currentTimeMillis()
-//    val response = clientPipeline {
-//      Get(url + "User/" + id)
-//    }
-//    response onComplete {
-//      case Failure(ex) => {
-//        ex.printStackTrace()
-//        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-//      }
-//      case Success(resp) => {
-//        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-//        println("success: " + resp.status)
-//      }
-//    }
-//  }
+  //  def getRequest() = {
+  //    val clientPipeline = sendReceive
+  //    val startTimestamp = System.currentTimeMillis()
+  //    val response = clientPipeline {
+  //      Get(url + "User/" + id)
+  //    }
+  //    response onComplete {
+  //      case Failure(ex) => {
+  //        ex.printStackTrace()
+  //        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+  //      }
+  //      case Success(resp) => {
+  //        println(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+  //        println("success: " + resp.status)
+  //      }
+  //    }
+  //  }
 
   //  def postMessageUser(message :String , userId :Int ): Unit = {
   //    val clientPipeline = sendReceive

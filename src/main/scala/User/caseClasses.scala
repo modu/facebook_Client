@@ -1,5 +1,6 @@
 package facebookClient
 
+import spray.httpx.SprayJsonSupport
 import spray.json.{DefaultJsonProtocol, JsValue}
 
 object protocol {
@@ -9,7 +10,11 @@ object protocol {
 
   case class userRequestWallMessageUpdate_Post(id: Int, message: String)
 
-  case class userRequestFriendRequest_Post( optionalMessage: String)
+  case class userRequestFriendRequest_Post(optionalMessage: String)
+
+  case class userRequestGetBio_Get(id: Int)
+
+  case class userRequestGetAllPosts_Get(id :Int)
 
 
   /*Messages sent by User*/
@@ -19,18 +24,24 @@ object protocol {
 
   case class FriendRequest(requesterID: Int, requestedToID: Int, message: String)
 
+  case class GetBio(id: Int)
 
 
-  object registerRequestProtocol extends DefaultJsonProtocol {
+
+  object RegisterUserRequestProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val format = jsonFormat3(RegisterUserRequest.apply)
   }
 
-  object UserPostMessageOwnWallProtocol extends DefaultJsonProtocol {
+  object UserPostMessageOwnWallProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val format = jsonFormat2(UserPostMessageOwnWall.apply)
   }
 
-  object FriendRequestProtocol extends DefaultJsonProtocol {
+  object FriendRequestProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val format = jsonFormat3(FriendRequest.apply)
+  }
+
+  object GetBioProtocol extends DefaultJsonProtocol with SprayJsonSupport {
+    implicit val format = jsonFormat1(GetBio.apply)
   }
 
 }
