@@ -40,8 +40,8 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       getBioUser_Get(id)
       //      killYourself
     }
-    case userRequestWallMessageUpdate_Post(id, message) => {
-      userPostMessageOwnWall_Put(id, message)
+    case userRequestWallMessageUpdate_Post(message) => {
+      userPostMessageOwnWall_Put(id, message+s"$id")
       //      killYourself
     }
     case userRequestGetAllPosts_Get(id) => {
@@ -54,11 +54,9 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       userRequestGetAllPostsOnAPage_GetF(pageId)
     }
 
-    case userRequestFriendRequest_Post(optionalMessage) => {
+    case userRequestFriendRequest_Post(requesterID , toBeFriendID ,  optionalMessage) => {
       /*Friend next three users */
-      userSendFriendRequest_post(id, id + 1, optionalMessage)
-      userSendFriendRequest_post(id, id + 2, optionalMessage) /*Have to maintain consistency that two users are already friends and inform user about it*/
-      userSendFriendRequest_post(id, id + 3, optionalMessage)
+      userSendFriendRequest_post(requesterID, toBeFriendID, optionalMessage) /*Have to maintain consistency that two users are already friends and inform user about it*/
       //      killYourself
     }
     case userRequestPostOnAPage(pageId: Int, creatorID: Int, message: String) => {
@@ -70,7 +68,51 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
         userPostMessageOnAPage_Put(pageId: Int, creatorID: Int, message: String)
       }
     }
+    case userRequestGetFriendList_Get() => {
+      userRequestGetFriendList_GetF(id)
+    }
+    case userRequestGetNewsFeed() =>{
+      userRequestGetNewsFeed_GetF(id)
+    }
 
+  }
+  def userRequestGetNewsFeed_GetF(id :Int) = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    val response = clientPipeline {
+      Get(url + "User/NewsFeed/" + id)
+    }
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        log.info(s"News Feed Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("success: \n" + resp.entity)
+      }
+    }
+  }
+
+
+  def userRequestGetFriendList_GetF(id :Int) = {
+    val clientPipeline = sendReceive
+    val startTimestamp = System.currentTimeMillis()
+    val response = clientPipeline {
+      Get(url + "User/FriendList/" + id)
+    }
+    response onComplete {
+      case Failure(ex) => {
+        ex.printStackTrace()
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.error("Failure to register user ")
+      }
+      case Success(resp) => {
+        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.debug("success: \n" + resp.message)
+      }
+    }
   }
 
   def userRequestGetAllPostsOnAPage_GetF(id :Int) = {
@@ -208,17 +250,15 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     val startTimestamp = System.currentTimeMillis()
     import FriendRequestProtocol._
     val response = clientPipeline {
-      Post(url + "User/FriendRequest/" + id, FriendRequest(id, friendsID, message))
+      Post(url + "User/FriendRequest", FriendRequest(id, friendsID, message))
     }
     response onComplete {
       case Failure(ex) => {
         ex.printStackTrace()
-        log.error("Failure to register user ")
+        log.error("Failure to Friend other user ")
       }
       case Success(resp) => {
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.debug("success: " + resp.status + "  " + resp.message)
-        log.info(s"User $name userID $id Friend Requested to userID $friendsID")
+        log.info("success: "  + resp.message + " \n\n\n" +resp.entity )
       }
     }
   }

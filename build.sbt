@@ -21,7 +21,7 @@ resolvers ++= Seq(
 //  "spray repo" at "http://repo.spray.io/"
 //)
 
-Revolver.settings: Seq[sbt.Def.Setting[_]]
+//Revolver.settings: Seq[sbt.Def.Setting[_]]
 
 libraryDependencies ++= {
   val akkaV = "2.3.9"

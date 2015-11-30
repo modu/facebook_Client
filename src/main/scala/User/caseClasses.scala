@@ -8,9 +8,9 @@ object protocol {
   /*Receives of Users */
   case class userRequestRegister_Put(id: Int, name: String, email: String)
 
-  case class userRequestWallMessageUpdate_Post(id: Int, message: String)
+  case class userRequestWallMessageUpdate_Post( message: String)
 
-  case class userRequestFriendRequest_Post(optionalMessage: String)
+  case class userRequestFriendRequest_Post(requesterID :Int , toBeFriendID :Int , optionalMessage: String)
 
   case class userRequestGetBio_Get(id: Int)
 
@@ -21,6 +21,10 @@ object protocol {
   case class userRequestGetAllPostsOnAPage_Get()
 
   case class userRequestPageFeed(pageId :Int)
+
+  case class userRequestGetFriendList_Get()
+
+  case class userRequestGetNewsFeed()
 
   /*Messages sent by User*/
   case class RegisterUserRequest(id: Int, name: String, email: String)
