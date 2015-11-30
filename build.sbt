@@ -1,4 +1,4 @@
-import _root_.spray.revolver.RevolverPlugin.Revolver
+//import _root_.spray.revolver.RevolverPlugin.Revolver
 
 name := "facebook_Client"
 

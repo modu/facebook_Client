@@ -28,8 +28,6 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
   var name: String = ""
   var email: String = ""
   val url: String = "http://127.0.0.1:9090/"
-  log.info( " \n ************* Page created on CLient side \n ")
-  log.info(" \n\n" +self.path + " \n\n")
   /*Admin of a page
   * Pictures associated
   * Albums

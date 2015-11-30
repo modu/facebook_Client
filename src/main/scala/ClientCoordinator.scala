@@ -33,8 +33,6 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
   def modelOne(numberOfUser: Int, modelNumber: Int, system: ActorSystem): Unit = {
     /*Create different types of User */
     var activityRate: Int = 0
-    val userArray = ofDim[ActorRef](numberOfUser)
-
     for (i <- 1 to numberOfUser - 1) {
       if (i > 0.80 * numberOfUser)
         activityRate = 100 /*Heavy Active users */
@@ -42,89 +40,148 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
         activityRate = 50 /*Medium Users --> Passive plus Active */
       else if (i < 0.30 * numberOfUser)
         activityRate = 10 /*Passive Users */
-      userArray(i) = system.actorOf(Props(new User(i, activityRate, system)), name = "User" + i);
+      system.actorOf(Props(new User(i, activityRate, system)), name = "User" + i);
     }
+    log.info("\n\n***********    Users Created on Client  ***********\n\n")
     readLine()
-    log.info("***********    Users Created on Client  ***********")
+
     import system.dispatcher
 
-    log.info("\n\n ***********   4  Users Registered on Server Starts *********** \n\n")
+    log.info("\n\n ***********   Registering Few Users on Server Starts *********** \n\n")
 
-    val actorRefUser = context.actorSelection("../User" + 1)
-    actorRefUser ! userRequestRegister_Put(1, "name" + 1, "Hi 1 @gmail.com")
-
-    val actorRefUser2 = context.actorSelection("../User" + 2)
-    actorRefUser2 ! userRequestRegister_Put(2, "name" + 2, "Hi 2 @gmail.com")
-
-    val actorRefUser3 = context.actorSelection("../User" + 3)
-    actorRefUser3 ! userRequestRegister_Put(3, "name" + 3, "Hi 3 @gmail.com")
-    val actorRefUser4 = context.actorSelection("../User" + 4)
-    actorRefUser4 ! userRequestRegister_Put(4, "name" + 4, "Hi 4 @gmail.com")
-    log.info("\n\n ***********   4  Users Registered on Server Ends *********** \n\n")
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
+        userRequestRegister_Put(i, "Name" + i, "Hi" + i + "@gmail.com"))
+      Thread.sleep(100)
+    }
+    log.info("\n\n ***********    Registering Few Users on Server Ends *********** \n\n")
     //readLine()
-    system.scheduler.scheduleOnce(40 millisecond, context.actorFor("../User" + 1),
-      userRequestGetBio_Get(1))
+    Thread.sleep(1000)
+    log.info("\n\n ***********   GetBio for Users on Server Starts *********** \n\n")
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
+        userRequestGetBio_Get(i))
+      Thread.sleep(200)
+    }
+    Thread.sleep(1000)
+    log.info("\n\n ***********   GetBio for Users on Server Ends *********** \n\n")
 
-    actorRefUser ! userRequestWallMessageUpdate_Post("This is the first post for User " + 1)
+    log.info("\n\n ***********   Posting On wall for Users on Server Starts *********** \n\n")
 
-    actorRefUser ! userRequestWallMessageUpdate_Post("This is the Second post for User " + 1)
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(10 * i millisecond, context.actorFor("../User" + i),
+        userRequestWallMessageUpdate_Post(s"This is $i th Post of the user "))
+      system.scheduler.scheduleOnce(10 * i millisecond, context.actorFor("../User" + i),
+        userRequestWallMessageUpdate_Post(s"This is Second Post of the user "))
+      Thread.sleep(200)
+    }
 
-    actorRefUser ! userRequestGetAllPosts_Get(1)
-    //readLine()
+    log.info("\n\n ***********   Posting On wall for Users on Server Ends *********** \n\n")
+    Thread.sleep(1000)
 
-    log.info("\n\n ***********    Users 1 Sending Freind request to others Users Start*********** \n\n")
-    actorRefUser ! userRequestFriendRequest_Post(1 , 2 , "Hi I wanna be Friends with you! :) ")
-    actorRefUser ! userRequestFriendRequest_Post(1 , 3 , "Hi I wanna be Friends with you! :) ")
-    actorRefUser ! userRequestFriendRequest_Post(1 , 4 , "Hi I wanna be Friends with you! :) ")
-    actorRefUser2 ! userRequestFriendRequest_Post(2 , 3 , "Hi I wanna be Friends with you! :) ")
-    actorRefUser2 ! userRequestFriendRequest_Post(2 , 4 , "Hi I wanna be Friends with you! :) ")
-    log.info("\n\n ***********    Users 1,2 Sending Freind request to others Users End *********** \n\n")
-    readLine()
-    log.info("\n\n ***********    Users Getting back there friendList Start*********** \n\n")
-    actorRefUser !  userRequestGetFriendList_Get()
-    actorRefUser2 ! userRequestGetFriendList_Get()
+    log.info("\n\n ***********   Getting All posts of Users Starts*********** \n\n")
 
-//    actorRefUser3 ! userRequestGetFriendList_Get()
-    log.info("\n\n ***********    Users Getting back there friendList  End *********** \n\n")
-    actorRefUser2 ! userRequestWallMessageUpdate_Post("This is the first post for User " )
-    actorRefUser2 ! userRequestWallMessageUpdate_Post("This is the Second post for User ")
-    actorRefUser2 ! userRequestWallMessageUpdate_Post("This is the third post for User " )
-    actorRefUser2 ! userRequestWallMessageUpdate_Post("This is the Fourth post for User ")
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(10 * i millisecond, context.actorFor("../User" + i),
+        userRequestGetAllPosts_Get(i) )
+      Thread.sleep(300)
+    }
+    log.info("\n\n ***********   Getting All posts of Users Ends*********** \n\n")
+    Thread.sleep(1000)
 
-    actorRefUser3 ! userRequestWallMessageUpdate_Post("This is the first post for User " )
-    actorRefUser3 ! userRequestWallMessageUpdate_Post("This is the Second post for User ")
-    actorRefUser3 ! userRequestWallMessageUpdate_Post("This is the third post for User " )
-    actorRefUser3 ! userRequestWallMessageUpdate_Post("This is the Fourth post for User ")
+    log.info("\n\n ***********  Sending Friend Request of Users Starts*********** \n\n")
 
-    readLine()
-    actorRefUser ! userRequestGetNewsFeed()
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(10  millisecond, context.actorFor("../User" + i),
+        userRequestFriendRequest_Post(i, i+1, "Hi I wanna be Friends with you! :) ") )
+      system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
+        userRequestFriendRequest_Post(i, i+2, "Hi I wanna be Friends with you! :) ") )
+      system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
+        userRequestFriendRequest_Post(i, i+3, "Hi I wanna be Friends with you! :) ") )
+      Thread.sleep(300)
 
-    //    var temp = system.actorOf(Props(new Pages(1 , 5, system )), name = "Page" + 1);
-//
-//    val actorRefPage = context.actorFor("akka://Facebook-Client/user/Page" + 1)
+    }
+    log.info("\n\n ***********   Sending Friend Request of Users end *********** \n\n")
+    Thread.sleep(1000)
+
+    log.info("\n\n ***********   Getting FriendsList for user Starts *********** \n\n")
+
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(150 millisecond, context.actorFor("../User" + i),
+        userRequestGetFriendList_Get() )
+      Thread.sleep(400)
+    }
+    log.info("\n\n ***********   Getting FriendsList for user Ends *********** \n\n")
 //    readLine()
-//    actorRefPage ! PageRequestRegister_Put(1, " About of the Page 1 ", "General Info Of The Page 1 ")
-//    readLine()
-////    actorRefPage ! PageRequestGetBio_Get(1)
-////    readLine()
-//
-//    actorRefUser ! userRequestPostOnAPage(1, 1, "This is First Post of Page from user 1 ")
-//
-//    readLine()
-//
-//    actorRefUser ! userRequestPostOnAPage(1, 1, "This is Second Post of Page from user 1 ")
-//
-//    readLine()
-//
-//    actorRefUser ! userRequestPostOnAPage(1, 1, "This is Third Post of Page from user 1 ")
-//
-//    actorRefUser ! userRequestPageFeed(1)
+    Thread.sleep(1000)
+
+    log.info("\n\n ***********   Getting NewsFeed for user Starts *********** \n\n")
+
+    for (i <- 1 to 8) {
+      system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
+        userRequestGetNewsFeed() )
+      Thread.sleep(800)
+    }
+    log.info("\n\n ***********    Getting NewsFeed for user  Ends *********** \n\n")
+    Thread.sleep(800)
+
+    log.info("\n\n ***********   Creating 10 pages Starts *********** \n\n")
+    val numberOfpages = 6
+    for (i <- 1 to numberOfpages - 1) {
+      system.actorOf(Props(new Pages(i , 5, system )), name = "Page" + i)
+      Thread.sleep(200)
+
+    }
+    log.info("\n\n ***********   Creating Page Ends *********** \n\n")
+
+    log.info("\n\n ***********   Registering Pages Starts*********** \n\n")
+
+    for (i <- 1 to numberOfpages) {
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/Page" + i),
+        PageRequestRegister_Put(i, s" About of the Page $i", s"General Info Of The Page $i ") )
+      Thread.sleep(200)
+    }
+    log.info("\n\n ***********   Registering Pages Ends*********** \n\n")
+   Thread.sleep(1000)
+
+    log.info("\n\n ***********   Get Pages Bio Starts*********** \n\n")
+
+    for (i <- 1 to numberOfpages) {
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/Page" + i),
+        PageRequestGetBio_Get(i) )
+      Thread.sleep(200)
+
+    }
+    log.info("\n\n ***********   Get Pages Bio Ends*********** \n\n")
 
 
 
-    //    readLine()
-    //
-    //    actorRefUser ! userRequestGetAllPostsOnAPage_Get(1 )
+    /*No point in all users Posting to similar pages Only few uses do the posting */
+
+    log.info("\n\n ***********   Posting on Page by Users Starts*********** \n\n")
+
+    for (i <- 1 to numberOfpages) {
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/User" + 1),
+        userRequestPostOnAPage(i, 1, "This is First Post of Page from user 1 ") )
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/User" + 2),
+        userRequestPostOnAPage(i, 2, "This is First Post of Page from user 2") )
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/User" + 3),
+        userRequestPostOnAPage(i, 3, "This is First Post of Page from user 1 ") )
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/User" + 4),
+        userRequestPostOnAPage(i, 4, "This is First Post of Page from user 2") )
+      Thread.sleep(500)
+    }
+    log.info("\n\n ***********  Posting on Page by Users  Ends*********** \n\n")
+
+    Thread.sleep(1000)
+
+    log.info("\n\n ***********   Getting Page Feeds by Users Starts*********** \n\n")
+    for (i <- 1 to numberOfpages) {
+      system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/User" + 1),
+        userRequestPageFeed(i) )
+      Thread.sleep(800)
+    }
+    log.info("\n\n *********** Getting Page Feeds by Users Ends*********** \n\n")
 
 
     //Use the system's dispatcher as ExecutionContext
@@ -175,6 +232,9 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
   }
 
   def modelTwo(numberOfUser: Int, modelNumber: Int, system: ActorSystem): Unit = {
+    //Use the system's dispatcher as ExecutionContext
+    import system.dispatcher
+
     var activityRate: Int = 0
     val userArray = ofDim[ActorRef](numberOfUser)
     for (i <- 1 to numberOfUser - 1) {
@@ -187,6 +247,43 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
       userArray(i) = system.actorOf(Props(new User(i, activityRate, system)), name = "User" + i);
     }
     log.info("After for loop    ***********")
+
+    log.info("\n\n*************************  Registering the users Starts ********************\n\n")
+    for (i <- 1 to numberOfUser) {
+
+      system.scheduler.scheduleOnce(100 * i millisecond, context.actorFor("../User" + i),
+        userRequestRegister_Put(i, "Name" + i, "Hi" + i + "@gmail.com"))
+    }
+    log.info("\n\n*************************  Registering the users Ends ********************\n\n")
+    readLine()
+
+    log.info("\n\n*************************  GetBio the users Starts ********************\n\n")
+    for (i <- 1 to numberOfUser) {
+
+      system.scheduler.scheduleOnce(30 * i millisecond, context.actorFor("../User" + i),
+        userRequestGetBio_Get(i))
+
+    }
+
+    log.info("\n\n*************************  GetBio the users Ends ********************\n\n")
+    readLine()
+
+    log.info("\n\n*************************  Posting by users Starts ********************\n\n")
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(40 * i millisecond, context.actorFor("../User" + i),
+        userRequestWallMessageUpdate_Post(s"This is $i th Post of the user "))
+    }
+    log.info("\n\n*************************  Posting by users Ends ********************\n\n")
+    readLine()
+
+    log.info("\n\n*************************  Friend Request Sending by users Starts ********************\n\n")
+
+    for (i <- 1 to numberOfUser) {
+      system.scheduler.scheduleOnce(100 millisecond, context.actorFor("../User" + i),
+        userRequestFriendRequest_Post(i, i + 1, "Hi I wanna be Friends with you! :) "))
+    }
+    log.info("\n\n*************************   Friend Request Sending by users Ends ********************\n\n")
+
   }
 
   def modelThree(numberOfUser: Int, modelNumber: Int, system: ActorSystem): Unit = {
