@@ -15,18 +15,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 POST is used to create.
 PUT is used to create or update.
 http://stackoverflow.com/questions/630453/put-vs-post-in-rest
+
 */
+/*User Actor which does actual request  to server */
 
 class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   val log = Logging(system, getClass)
-  var name: String = ""
-  var email: String = ""
+  var name: String = "Name"+id
+  var email: String = "EmailAddress"+id+"@gmail.com"
   val url: String = "http://127.0.0.1:9090/"
-  /*Admin of a page
-  * Pictures associated
-  * Albums
-  * FriendList
-  * */
+
 
   def receive = {
     case userRequestRegister_Put(id, name, email) => {
@@ -35,8 +33,6 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       //      killYourself
     }
     case userRequestGetBio_Get(id) => {
-      /**/
-      log.info("In the userRequestGetBio_Get request of User Client side")
       getBioUser_Get(id)
       //      killYourself
     }
@@ -55,7 +51,6 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
 
     case userRequestFriendRequest_Post(requesterID , toBeFriendID ,  optionalMessage) => {
-      /*Friend next three users */
       userSendFriendRequest_post(requesterID, toBeFriendID, optionalMessage) /*Have to maintain consistency that two users are already friends and inform user about it*/
       //      killYourself
     }
@@ -76,6 +71,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
 
   }
+
   def userRequestGetNewsFeed_GetF(id :Int) = {
     val clientPipeline = sendReceive
     ////val startTimeStamp = System.currentTimeMillis()
@@ -84,12 +80,12 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        log.info("success: \n" + resp.entity)
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
@@ -103,13 +99,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: \n" + resp.message)
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
@@ -123,13 +119,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: \n" + resp.message)
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
@@ -144,13 +140,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: \n" + resp.message)
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
@@ -163,11 +159,11 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        log.info("success: " + resp.status + resp.message)
+        log.info("success: " + resp.status + resp.entity)
       }
     }
 
@@ -184,13 +180,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     /* s"{ UserId : $id , userName : $name , email : $email }"  */
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         ////log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: " + resp.status + resp.message)
+        log.info("success: " + resp.status + resp.entity)
         //log.info(s"User $name Is registered ")
       }
     }
@@ -210,12 +206,12 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: " + resp.status + "  " + resp.message)
+        log.info("success: " + resp.status + "  " + resp.entity)
       }
     }
   }
@@ -229,16 +225,15 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         log.error("Failure to register user ")
       }
       case Success(resp) => {
         ////log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: " + resp.status + "  " + resp.message)
+        log.info("success: " + resp.status + "  " + resp.entity)
       }
     }
   }
-
 
   def userSendFriendRequest_post(id: Int, friendsID: Int, message: String): Unit = {
     val clientPipeline = sendReceive
@@ -249,15 +244,14 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
     response onComplete {
       case Failure(ex) => {
-        ex.printStackTrace()
+        //ex.printStackTrace()
         log.error("Failure to Friend other user ")
       }
       case Success(resp) => {
-        log.info("success: "  + resp.message + " \n\n\n" +resp.entity )
+        log.info("success: "  + resp.entity + " \n\n\n" +resp.entity )
       }
     }
   }
-
   private def killYourself = self ! PoisonPill
 
 }

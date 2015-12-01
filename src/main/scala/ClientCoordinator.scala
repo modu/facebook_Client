@@ -33,7 +33,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
   def modelOne(numberOfUser: Int, modelNumber: Int, system: ActorSystem): Unit = {
     /*Create different types of User */
     var activityRate: Int = 0
-    for (i <- 1 to numberOfUser - 1) {
+    for (i <- 1 to numberOfUser ) {
       if (i > 0.80 * numberOfUser)
         activityRate = 100 /*Heavy Active users */
       else if (i > 0.30 * numberOfUser && i < 0.80 * numberOfUser)
@@ -56,7 +56,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     }
     log.info("\n\n ***********    Registering Few Users on Server Ends *********** \n\n")
     //readLine()
-    Thread.sleep(1000)
+    Thread.sleep(2000)
     log.info("\n\n ***********   GetBio for Users on Server Starts *********** \n\n")
     for (i <- 1 to numberOfUser) {
       system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
@@ -73,7 +73,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
         userRequestWallMessageUpdate_Post(s"This is $i th Post of the user "))
       system.scheduler.scheduleOnce(10 * i millisecond, context.actorFor("../User" + i),
         userRequestWallMessageUpdate_Post(s"This is Second Post of the user "))
-      Thread.sleep(200)
+      Thread.sleep(300)
     }
 
     log.info("\n\n ***********   Posting On wall for Users on Server Ends *********** \n\n")
@@ -84,10 +84,10 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     for (i <- 1 to numberOfUser) {
       system.scheduler.scheduleOnce(10 * i millisecond, context.actorFor("../User" + i),
         userRequestGetAllPosts_Get(i) )
-      Thread.sleep(300)
+      Thread.sleep(500)
     }
     log.info("\n\n ***********   Getting All posts of Users Ends*********** \n\n")
-    Thread.sleep(1000)
+    Thread.sleep(1200)
 
     log.info("\n\n ***********  Sending Friend Request of Users Starts*********** \n\n")
 
@@ -98,7 +98,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
         userRequestFriendRequest_Post(i, i+2, "Hi I wanna be Friends with you! :) ") )
       system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
         userRequestFriendRequest_Post(i, i+3, "Hi I wanna be Friends with you! :) ") )
-      Thread.sleep(300)
+      Thread.sleep(500)
 
     }
     log.info("\n\n ***********   Sending Friend Request of Users end *********** \n\n")
@@ -109,7 +109,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     for (i <- 1 to numberOfUser) {
       system.scheduler.scheduleOnce(150 millisecond, context.actorFor("../User" + i),
         userRequestGetFriendList_Get() )
-      Thread.sleep(400)
+      Thread.sleep(600)
     }
     log.info("\n\n ***********   Getting FriendsList for user Ends *********** \n\n")
 //    readLine()
@@ -117,7 +117,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
 
     log.info("\n\n ***********   Getting NewsFeed for user Starts *********** \n\n")
 
-    for (i <- 1 to 8) {
+    for (i <- 1 to 5) {
       system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + i),
         userRequestGetNewsFeed() )
       Thread.sleep(800)
@@ -126,7 +126,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     Thread.sleep(800)
 
     log.info("\n\n ***********   Creating 10 pages Starts *********** \n\n")
-    val numberOfpages = 6
+    val numberOfpages = 8
     for (i <- 1 to numberOfpages - 1) {
       system.actorOf(Props(new Pages(i , 5, system )), name = "Page" + i)
       Thread.sleep(200)
@@ -139,7 +139,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     for (i <- 1 to numberOfpages) {
       system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/Page" + i),
         PageRequestRegister_Put(i, s" About of the Page $i", s"General Info Of The Page $i ") )
-      Thread.sleep(200)
+      Thread.sleep(300)
     }
     log.info("\n\n ***********   Registering Pages Ends*********** \n\n")
    Thread.sleep(1000)
@@ -149,7 +149,7 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     for (i <- 1 to numberOfpages) {
       system.scheduler.scheduleOnce(150 * i millisecond, context.actorFor("akka://Facebook-Client/user/Page" + i),
         PageRequestGetBio_Get(i) )
-      Thread.sleep(200)
+      Thread.sleep(300)
 
     }
     log.info("\n\n ***********   Get Pages Bio Ends*********** \n\n")

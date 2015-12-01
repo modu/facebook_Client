@@ -54,7 +54,7 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
 
   def getBioPage_Get(id: Int): Unit = {
     val clientPipeline = sendReceive
-    val startTimestamp = System.currentTimeMillis()
+    //val startTimestamp = System.currentTimeMillis()
     val response = clientPipeline {
       Get(url + "Page/GetBio/" + id)
     }
@@ -64,15 +64,15 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: " + resp.message)
+        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
 
   def registerPage_Put(creatorID: Int, about: String, general_info: String): Unit = {
     val clientPipeline = sendReceive
-    //val startTimestamp = System.currentTimeMillis()
+    ////val startTimestamp = System.currentTimeMillis()
     import RegisterPageRequestProtocol._
     val requestForRegister = RegisterPageRequest(creatorID, about, general_info)
     val response = clientPipeline {
@@ -84,9 +84,9 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: " + resp.status + resp.message)
-        //log.info(s"User $name Is registered ")
+        ////log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("\nsuccess: \n" + resp.entity)
+        ////log.info(s"User $name Is registered ")
       }
     }
   }
@@ -94,19 +94,19 @@ class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends A
 /*Public api for getting all the posts of a Page*/
   def PagerequestGetAllPosts_GetF(PageID: Int) = {
     val clientPipeline = sendReceive
-    val startTimestamp = System.currentTimeMillis()
+    //val startTimestamp = System.currentTimeMillis()
     val response = clientPipeline {
       Get(url + "Page/Get/AllPosts/" + PageID)
     }
     response onComplete {
       case Failure(ex) => {
         ex.printStackTrace()
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.debug("success: \n" + resp.message)
+        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("\nsuccess: \n" + resp.entity)
       }
     }
   }
