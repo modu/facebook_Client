@@ -8,8 +8,7 @@ scalaVersion := "2.11.7"
 
 resolvers += "spray repo" at "http://repo.spray.io/"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
-
+scalacOptions := Seq("-unchecked", "-encoding", "utf8")
 
 resolvers ++= Seq(
   "Scala Tools Repo Releases" at "http://scala-tools.org/repo-releases",
@@ -22,6 +21,9 @@ resolvers ++= Seq(
 //)
 
 //Revolver.settings: Seq[sbt.Def.Setting[_]]
+
+
+libraryDependencies += "commons-codec" % "commons-codec" % "1.9"
 
 libraryDependencies ++= {
   val akkaV = "2.3.9"

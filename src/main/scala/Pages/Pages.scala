@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
- * Created by varunvyas on 29/11/15.
+ * on 29/11/15.
  */
 
 
@@ -25,14 +25,8 @@ http://stackoverflow.com/questions/630453/put-vs-post-in-rest
 
 class Pages(creatorID: Int, popularityRate : Int, system: ActorSystem) extends Actor{
   val log = Logging(system, getClass)
-  var name: String = ""
-  var email: String = ""
   val url: String = "http://127.0.0.1:9090/"
-  /*Admin of a page
-  * Pictures associated
-  * Albums
-  * FriendList
-  * */
+
 
   def receive = {
     case PageRequestRegister_Put(creatorID , about , general_info) => {
