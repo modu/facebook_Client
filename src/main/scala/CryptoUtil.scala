@@ -2,8 +2,8 @@ package facebookClient
 
 import java.security._
 import java.security.spec.X509EncodedKeySpec
-import javax.crypto.Cipher
-import javax.crypto.spec.SecretKeySpec
+import javax.crypto.{SecretKey, Cipher}
+import javax.crypto.spec.{SecretKeySpec, IvParameterSpec}
 import org.apache.commons.codec.binary.Base64
 import java.util
 
@@ -58,49 +58,52 @@ object CryptoUtil {
   def generateKeyPair() = {
     /*TODO:Generate truly Random Seed */
     val keyGenerator: KeyPairGenerator = KeyPairGenerator.getInstance(ALGORITHMRSA)
-    val rng: SecureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN")
-    rng.setSeed(123123) /*Have to get the true seed here*/
-    keyGenerator.initialize(1024, rng)
+//    val rng: SecureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN")
+//    rng.setSeed(123123) /*Have to get the true seed here*/
+    keyGenerator.initialize(1024)
     keyGenerator.generateKeyPair() /*key pair will be */
   }
 
 
-  /**
-   * Encrypt the plain text using public key.
-   *
-   * @param text
-   * : original plain text
-   * @param publickey
-   * :The public key
-   * @return Encrypted text
-   */
+  def encryptRSAKey(secKey :SecretKey, publickey: PublicKey) = {
+    // get an RSA cipher object and print the provider
+    val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
+    // encrypt the plain text using the public key
+    cipher.init(Cipher.ENCRYPT_MODE, publickey)
+    //cipher.doFinal(text.getBytes())
+    cipher.doFinal(secKey.getEncoded)
+  }
+
+  def decryptRSAKey(cypherKey: Array[Byte], privatekey: PrivateKey) :SecretKey = {
+    // get an RSA cipher object and print the provider
+    val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
+    // decrypt the plain text using the private key
+    cipher.init(Cipher.DECRYPT_MODE, privatekey)
+    val key  = cipher.doFinal(cypherKey)
+    new SecretKeySpec(key,"AES")
+    //    println(temp)
+  }
+
 
   def encryptRSA(text: String, publickey: PublicKey) = {
     // get an RSA cipher object and print the provider
     val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
     // encrypt the plain text using the public key
     cipher.init(Cipher.ENCRYPT_MODE, publickey)
-    cipher.doFinal(text.getBytes())
+    Base64.encodeBase64String(( cipher.doFinal(text.getBytes("UTF-8")))).getBytes()
+    //cipher.doFinal(keyToSpec(text).getEncoded)
   }
 
-  /**
-   * Decrypt text using private key.
-   *
-   * @param cypherText
-   * :encrypted text
-   * @param privatekey
-   * :The private key
-   * @return plain text
-   */
+  def decryptRSA(cypherText: Array[Byte], privatekey: PrivateKey)  = {
+      // get an RSA cipher object and print the provider
+      val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
+      // decrypt the plain text using the private key
+      cipher.init(Cipher.DECRYPT_MODE, privatekey)
+      cipher.doFinal(Base64.decodeBase64(cypherText))
+    //new String(cipher.doFinal(Base64.decodeBase64(encryptedValue)))
 
-  def decryptRSA(cypherText: Array[Byte], privatekey: PrivateKey) = {
-    // get an RSA cipher object and print the provider
-    val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
-    // encrypt the plain text using the public key
-    cipher.init(Cipher.DECRYPT_MODE, privatekey)
-    cipher.doFinal(cypherText).toString
-  }
-
+    //    println(temp)
+    }
   /**
    * Sample:
    * {{{
@@ -113,16 +116,22 @@ object CryptoUtil {
    *   res1: String = pula, pizda, coaiele!
    * }}}
    */
-
-  def encryptAES(key: String, value: String): String = {
-    val cipher: Cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-    cipher.init(Cipher.ENCRYPT_MODE, keyToSpec(key))
+  def encryptAES(key: SecretKey, iv :String, value: String): String = {
+    val cipher: Cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+//    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+//    cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"), new IvParameterSpec(IV));
+//    key = new byte[16];
+//    iv = new byte[16];
+//    sr.nextBytes(key);
+//    sr.nextBytes(iv);
+    cipher.init(Cipher.ENCRYPT_MODE, key, ivToSpec(iv))
     Base64.encodeBase64String(cipher.doFinal(value.getBytes("UTF-8")))
   }
 
-  def decryptAES(key: String, encryptedValue: String): String = {
-    val cipher: Cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
-    cipher.init(Cipher.DECRYPT_MODE, keyToSpec(key))
+  def decryptAES(key: SecretKey, iv :String ,encryptedValue: String): String = {
+    /*TODO:Using CBC later */
+    val cipher: Cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
+    cipher.init(Cipher.DECRYPT_MODE, key, ivToSpec(iv))
     new String(cipher.doFinal(Base64.decodeBase64(encryptedValue)))
   }
 
@@ -132,6 +141,14 @@ object CryptoUtil {
     keyBytes = sha.digest(keyBytes)
     keyBytes = util.Arrays.copyOf(keyBytes, 16)
     new SecretKeySpec(keyBytes, "AES")
+  }
+
+  def ivToSpec(iv :String)  :IvParameterSpec = {
+    var keyBytes: Array[Byte] = (SALT + iv).getBytes("UTF-8")
+    val sha: MessageDigest = MessageDigest.getInstance("SHA-1")
+    keyBytes = sha.digest(keyBytes)
+    keyBytes = util.Arrays.copyOf(keyBytes, 16)
+    new IvParameterSpec(keyBytes)
   }
 
   /*TODO: Really good SALT */
@@ -159,6 +176,79 @@ object CryptoUtil {
 }
 
 
+
+//val tobeEncrypted =  " Hi this is toeb easdlf;kajsklsdflaksdfj;alskjfa;slkdfjas;ldkjf ;alskj alskj fasl;dkjf;alsk jdfa;lskdjfa;lsdkjf;alskdjfa;lskdfj;alskdjfa;slkdjf;alskdjf;alsdkfjas;ldjkfals;kdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kkdfja;sldkfj;laskdfja;slkdfj;alskjf;lsakdfjs;lkdfjas;lkdfjadls;kfsakdfjal;skfjals;dkfjals;kdfjals;kdfjals;kcnrypted "
+//println(tobeEncrypted)
+//val temp = CryptoUtil.encryptAES("Key", "iv", tobeEncrypted)
+//val temp3 = CryptoUtil.decryptAES("Key", "iv", temp)
+//println(temp3)
+
 //http://www.java2s.com/Code/Java/Security/SignatureSignAndVerify.htm
 //https://gist.github.com/alexandru/ac1c01168710786b54b0
 //https://javadigest.wordpress.com/2012/08/26/rsa-encryption-example/
+
+//val temp = " HI thi"
+//println(temp);
+//val tkp = CryptoUtil.generateKeyPair()
+//var base64 = Base64.getEncoder
+//
+//val tempr = CryptoUtil.encryptRSA(temp, tkp.getPublic())
+//var retur = CryptoUtil.decryptRSA(tempr.getBytes(), tkp.getPrivate() )
+//
+//println( "\n\n" + retur)
+
+
+
+/**
+ * Encrypt the plain text using public key.
+ *
+ * @param text
+   * : original plain text
+ * @param publickey
+   * :The public key
+ * @return Encrypted text
+ */
+//
+//  def encryptRSA(text: String, publickey: PublicKey) = {
+//    // get an RSA cipher object and print the provider
+//    val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
+//    // encrypt the plain text using the public key
+//    cipher.init(Cipher.ENCRYPT_MODE, publickey)
+//    cipher.doFinal(text.getBytes())
+//    //cipher.doFinal(keyToSpec(text).getEncoded)
+//  }
+
+
+/**
+ * Decrypt text using private key.
+ *
+ * @param cypherText
+   * :encrypted text
+ * @param privatekey
+   * :The private key
+ * @return plain text
+ */
+
+//  def decryptRSA(cypherText: Array[Byte], privatekey: PrivateKey)  = {
+//    // get an RSA cipher object and print the provider
+//    val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
+//    // decrypt the plain text using the private key
+//    cipher.init(Cipher.DECRYPT_MODE, privatekey)
+//    cipher.doFinal(cypherText)
+////    println(temp)
+//  }
+
+
+
+//
+//var kp = CryptoUtil.generateKeyPair()
+//
+//val temp = " HI thi"
+//println(temp);
+//
+//val encryptedText = CryptoUtil.encryptAES(CryptoUtil.keyToSpec(temp), "iv", "TOBEENcrypteddafdfs")
+//
+//val byteArrayEncrypted = CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec(temp), kp.getPublic)
+//val decryptedKeySpec = CryptoUtil.decryptRSAKey(byteArrayEncrypted, kp.getPrivate)
+//
+//println(CryptoUtil.decryptAES(decryptedKeySpec, "iv", encryptedText))

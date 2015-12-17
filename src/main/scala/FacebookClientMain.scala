@@ -1,5 +1,7 @@
 package facebookClient
 
+import java.security.PublicKey
+
 import scala.util.{Success, Failure}
 import akka.actor.{Props, ActorRef, ActorSystem}
 import akka.event.Logging
@@ -10,15 +12,14 @@ object FacebookClientMain extends App {
   if (args.length > 1) {
 
     println("Starting client with ClientID = " + args(1))
-    var totalUsers: Int = args(0).toInt
-    var modelNumber: Int = args(1).toInt
+    val totalUsers: Int = args(0).toInt
+    val modelNumber: Int = args(1).toInt
 
     println("numUsers = " + modelNumber)
-
     // we need an ActorSystem to host our application in
     implicit val system = ActorSystem("Facebook-Client")
     val log = Logging(system, getClass)
-    val clientCoorinatorService = system.actorOf(Props(new ClientCoordinator(totalUsers, modelNumber, system)), name = "ClientCoorinator")
+    implicit val clientCoorinatorService = system.actorOf(Props(new ClientCoordinator(totalUsers, modelNumber, system)), name = "ClientCoorinator")
     /*Ability to switch the model number at run time ? */
     clientCoorinatorService ! start(totalUsers, modelNumber, system)
 
@@ -31,5 +32,7 @@ object FacebookClientMain extends App {
   }
 
 }
+
+
 
 
