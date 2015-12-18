@@ -1,5 +1,6 @@
 package facebookClient
 
+import java.math.BigInteger
 import java.security._
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.{SecretKey, Cipher}
@@ -10,13 +11,13 @@ import java.util
 import sun.misc.{BASE64Decoder, BASE64Encoder}
 
 /**
- * Created by varunvyas on 13/12/15.
+ * Created by  on 13/12/15.
  */
 object CryptoUtil {
 
   val ALGORITHMRSA = "RSA/ECB/PKCS1PADDING"
-//  val cipher : Cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
-//  val cipherRsa : Cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING")
+  //  val cipher : Cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
+  //  val cipherRsa : Cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING")
 
   /*
   Digital Signing  function:
@@ -61,52 +62,63 @@ object CryptoUtil {
   def generateKeyPair() = {
     /*TODO:Generate truly Random Seed */
     val keyGenerator: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
-//    val rng: SecureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN")
-//    rng.setSeed(123123) /*Have to get the true seed here*/
     keyGenerator.initialize(1024)
     keyGenerator.generateKeyPair() /*key pair will be */
   }
 
-
   def encryptRSAKey(secKey :SecretKey, publickey: PublicKey) = {
-    // get an RSA cipher object and print the provider
     val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
-    // encrypt the plain text using the public key
     cipher.init(Cipher.ENCRYPT_MODE, publickey)
-    //cipher.doFinal(text.getBytes())
     cipher.doFinal(secKey.getEncoded)
   }
 
   def decryptRSAKey(cypherKey: Array[Byte], privatekey: PrivateKey) :SecretKey = {
-    // get an RSA cipher object and print the provider
     val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
-    // decrypt the plain text using the private key
     cipher.init(Cipher.DECRYPT_MODE, privatekey)
     val key  = cipher.doFinal(cypherKey)
     new SecretKeySpec(key,"AES")
-    //    println(temp)
   }
 
+  /**
+   * Encrypt the plain text using public key.
+   *
+   * @param text
+ * : original plain text
+   * @param publickey
+ * :The public key
+   * @return Encrypted text
+   */
 
   def encryptRSA(text: String, publickey: PublicKey) = {
     // get an RSA cipher object and print the provider
     val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
     // encrypt the plain text using the public key
     cipher.init(Cipher.ENCRYPT_MODE, publickey)
-    Base64.encodeBase64String(( cipher.doFinal(text.getBytes("UTF-8")))).getBytes()
+    cipher.doFinal(text.getBytes())
+    Base64.encodeBase64String(cipher.doFinal(text.getBytes("UTF-8")))
     //cipher.doFinal(keyToSpec(text).getEncoded)
   }
 
-  def decryptRSA(cypherText: Array[Byte], privatekey: PrivateKey)  = {
-      // get an RSA cipher object and print the provider
-      val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
-      // decrypt the plain text using the private key
-      cipher.init(Cipher.DECRYPT_MODE, privatekey)
-      cipher.doFinal(Base64.decodeBase64(cypherText))
-    //new String(cipher.doFinal(Base64.decodeBase64(encryptedValue)))
 
+  /**
+   * Decrypt text using private key.
+   *
+   * @param cypherText
+ * :encrypted text
+   * @param privatekey
+ * :The private key
+   * @return plain text
+   */
+
+  def decryptRSA(cypherText: String, privatekey: PrivateKey): String = {
+    // get an RSA cipher object and print the provider
+    val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
+    // decrypt the plain text using the private key
+    cipher.init(Cipher.DECRYPT_MODE, privatekey)
+    //cipher.doFinal(cypherText)
+    new String(cipher.doFinal(Base64.decodeBase64(cypherText)))
     //    println(temp)
-    }
+  }
   /**
    * Sample:
    * {{{
@@ -121,12 +133,12 @@ object CryptoUtil {
    */
   def encryptAES(key: SecretKey, iv :String, value: String): String = {
     val cipher: Cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-//    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-//    cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"), new IvParameterSpec(IV));
-//    key = new byte[16];
-//    iv = new byte[16];
-//    sr.nextBytes(key);
-//    sr.nextBytes(iv);
+    //    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+    //    cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"), new IvParameterSpec(IV));
+    //    key = new byte[16];
+    //    iv = new byte[16];
+    //    sr.nextBytes(key);
+    //    sr.nextBytes(iv);
     cipher.init(Cipher.ENCRYPT_MODE, key, ivToSpec(iv))
     Base64.encodeBase64String(cipher.doFinal(value.getBytes("UTF-8")))
   }
@@ -168,11 +180,17 @@ object CryptoUtil {
   }
 
   def stringToPublicKey(base64EncodedStringOfPublicKey: String): PublicKey = {
+    println("\n Value of Public key received on client side is " + base64EncodedStringOfPublicKey)
     val decoder = new BASE64Decoder()
     val c = decoder.decodeBuffer(base64EncodedStringOfPublicKey);
     val keyFact = KeyFactory.getInstance("RSA")
     val x509KeySpec: X509EncodedKeySpec = new X509EncodedKeySpec(c)
     keyFact.generatePublic(x509KeySpec)
+  }
+
+  def getRandom() :String = {
+    val random :SecureRandom =  new SecureRandom()
+    new BigInteger(100, random).toString(32)
   }
 
 
@@ -190,68 +208,32 @@ object CryptoUtil {
 //https://gist.github.com/alexandru/ac1c01168710786b54b0
 //https://javadigest.wordpress.com/2012/08/26/rsa-encryption-example/
 
-//val temp = " HI thi"
-//println(temp);
-//val tkp = CryptoUtil.generateKeyPair()
-//var base64 = Base64.getEncoder
+
+
+//      val kp = CryptoUtil.generateKeyPair()
 //
-//val tempr = CryptoUtil.encryptRSA(temp, tkp.getPublic())
-//var retur = CryptoUtil.decryptRSA(tempr.getBytes(), tkp.getPrivate() )
+//      val temp = " HI thi"
+//      println(temp);
 //
-//println( "\n\n" + retur)
-
-
-
-/**
- * Encrypt the plain text using public key.
- *
- * @param text
-   * : original plain text
- * @param publickey
-   * :The public key
- * @return Encrypted text
- */
 //
-//  def encryptRSA(text: String, publickey: PublicKey) = {
-//    // get an RSA cipher object and print the provider
-//    val cipher: Cipher = Cipher.getInstance(ALGORITHMRSA)
-//    // encrypt the plain text using the public key
-//    cipher.init(Cipher.ENCRYPT_MODE, publickey)
-//    cipher.doFinal(text.getBytes())
-//    //cipher.doFinal(keyToSpec(text).getEncoded)
-//  }
-
-
-/**
- * Decrypt text using private key.
- *
- * @param cypherText
-   * :encrypted text
- * @param privatekey
-   * :The private key
- * @return plain text
- */
-
-//  def decryptRSA(cypherText: Array[Byte], privatekey: PrivateKey)  = {
-//    // get an RSA cipher object and print the provider
-//    val cipher :Cipher = Cipher.getInstance(ALGORITHMRSA)
-//    // decrypt the plain text using the private key
-//    cipher.init(Cipher.DECRYPT_MODE, privatekey)
-//    cipher.doFinal(cypherText)
-////    println(temp)
-//  }
-
-
-
+//      val encrypted= CryptoUtil.encryptRSA(temp, kp.getPublic)
+//      val decrypted = CryptoUtil.decryptRSA(encrypted, kp.getPrivate)
 //
-//var kp = CryptoUtil.generateKeyPair()
+//      println(decrypted)
+
+
+//    /*input : secretKey , iv , and message
+//    * output : String*/
+//    val encryptedText = CryptoUtil.encryptAES(CryptoUtil.keyToSpec(temp), "iv", "TOBEENcrypteddafdfs")
 //
-//val temp = " HI thi"
-//println(temp);
+//    /*input : secretKey( which is to be encrypted) , publicKey
+//    * output : EncryptedKey Array[Byte]*/
+//    val byteArrayEncrypted = CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec(temp), kp.getPublic)
 //
-//val encryptedText = CryptoUtil.encryptAES(CryptoUtil.keyToSpec(temp), "iv", "TOBEENcrypteddafdfs")
+//    /*input :  EncryptedKey Array[Byte] , privateKey
+//    * output : secretKey( Which was earlier encrypted)*/
+//    val decryptedKeySpec = CryptoUtil.decryptRSAKey(byteArrayEncrypted, kp.getPrivate)
 //
-//val byteArrayEncrypted = CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec(temp), kp.getPublic)
-//val decryptedKeySpec = CryptoUtil.decryptRSAKey(byteArrayEncrypted, kp.getPrivate)
-//
-//println(CryptoUtil.decryptAES(decryptedKeySpec, "iv", encryptedText))
+//    /*input : secretKey , iv , and EncryptedMessage
+//    * output : String*/
+//    println(CryptoUtil.decryptAES(decryptedKeySpec, "iv", encryptedText))

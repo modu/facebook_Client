@@ -35,7 +35,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   /*Only client can access the private key */
   private val privateKey = keyPair.getPrivate
   val publicKey = keyPair.getPublic
-  log.info(s"\nPublic Of User $id is " + publicKey + "\n")
+  //log.info(s"\nPublic Of User $id is " + publicKey + "\n")
   var friendWithPublicKeyMap = Map[String, String]()
 
   /*Mapping of message with its symmetric key */
@@ -208,10 +208,11 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       }
       else {
         val secreteKey = KeyGenerator.getInstance("AES").generateKey()
-        val encryptedMessage = CryptoUtil.encryptAES(secreteKey, "iv", message)
+        val iv = CryptoUtil.getRandom()
+        val encryptedMessage = CryptoUtil.encryptAES(secreteKey, iv, message)
         log.info("\n\nEnctyped using public key of USer " + toUserID + " \n")
         val encryptedSecretKey = CryptoUtil.encryptRSAKey(secreteKey, CryptoUtil.stringToPublicKey(friendWithPublicKeyMap("User" + toUserID)))
-        val poste = PostE(fromID, toUserID, encryptedMessage, encryptedSecretKey)
+        val poste = PostE(fromID, toUserID, encryptedMessage, encryptedSecretKey, iv)
         log.info("Posting to User ")
         val clientPipeline = sendReceive
         import EncryptionProtocol._
@@ -251,27 +252,27 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
           log.error("Failed to create album ")
         }
         case Success(resp) => {
-          log.info("success: Received all posts  \n" + resp.allPosts.size)
-          var arra = resp.allPosts
-          if (arra.size == 0) {
+          //log.info("success: Received all posts  \n" + resp.allPosts.size)
+          val arra = resp.allPosts
+          if (arra.isEmpty) {
             log.info("Nothing Posted ")
           }
           else {
-            val lastPost = arra(arra.size - 1)
-            log.info("\n\nDecrypting using public key of USer " + id + " \n")
+            val lastPost = arra.last
+            //log.info("\n\nDecrypting using public key of USer " + id + " \n")
             val decrypteSecretKey = CryptoUtil.decryptRSAKey(lastPost.encrypteKey, privateKey)
 
             val newlyEncryptedSecreteKeyToBeSent = CryptoUtil.encryptRSAKey( decrypteSecretKey, publicOfSender)
-            context.actorFor("../User" + userHowAsked) ! takeThisPostAndKey(lastPost.encryptedMessage, newlyEncryptedSecreteKeyToBeSent)
+            context.actorFor("../User" + userHowAsked) ! takeThisPostAndKey(lastPost.encryptedMessage, lastPost.iv ,newlyEncryptedSecreteKeyToBeSent)
 
           }
         }
       }
     }
-    case takeThisPostAndKey(postEncrypted: String, encryptedKey: Array[Byte]) => {
-      log.info("Received on userd 333 *************\n")
+    case takeThisPostAndKey(postEncrypted: String, iv :String, encryptedKey: Array[Byte]) => {
       val decryptedSecretKey  = CryptoUtil.decryptRSAKey(encryptedKey, privateKey)
-      log.info(CryptoUtil.decryptAES(decryptedSecretKey , "iv", postEncrypted) )
+      log.info(s"Message received on User $id Client")
+      log.info(CryptoUtil.decryptAES(decryptedSecretKey , iv, postEncrypted) )
     }
 
     case userRequestGetMessage(id: Int) => {
@@ -294,10 +295,12 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     // images and private messages
   }
 
-  def userRequestGetServerPublicKey_Get() = {
+  def userRequestGetServerPublicKey_Get() :publicKeyResponseFromServer = {
     import publicKeyResponseFromServerProtocol._
     //val response = publicKeyResponseFromServer("publicKey")
     val clientPipeline = sendReceive ~> unmarshal[publicKeyResponseFromServer]
+
+    var publicKeyWithNounce :publicKeyResponseFromServer = new publicKeyResponseFromServer("", "")
     //:HttpRequest => Future[publicKeyResponseFromServer]
     val f = clientPipeline {
       Get(url + "GivePublicKeyOfServer")
@@ -307,11 +310,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
         log.error("\nFailed to Get public Key \n")
       }
       case Success(response) => {
-        val clientCoordinatorService = system.actorSelection("akka://Facebook-Server/user/ClientCoorinator")
-        clientCoordinatorService ! setPublicKey(response.str)
-        log.info("\nsuccess: Your Messages\n" + CryptoUtil.stringToPublicKey(response.str))
+//        val clientCoordinatorService = system.actorSelection("akka://Facebook-Server/user/ClientCoorinator")
+//        //clientCoordinatorService ! setPublicKey(response.str)
+        publicKeyWithNounce = response
+        log.info("\nsuccess: Your Messages\n" + response.str)
       }
     }
+    publicKeyWithNounce
   }
 
   def userRequestLikeAPage_Post(pageID: Int, userID: Int) = {
@@ -354,29 +359,20 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     }
   }
 
-
+/*Gets friends Name with there public Key*/
   def userRequestGetFriendList_GetF(id: Int) = {
     import FriendRequestProtocol._
     val clientPipeline = sendReceive ~> unmarshal[friendListsMap]
-    ////val startTimeStamp = System.currentTimeMillis()
     val response = clientPipeline {
       Get(url + "User/FriendList/" + id)
     }
     response onComplete {
       case Failure(ex) => {
-        //ex.printStackTrace()
-        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.error("Failure to register user ")
+        log.error("Failure to Friends List ")
       }
       case Success(resp) => {
-        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("Friend LIst with public key s")
         friendWithPublicKeyMap = resp.Friends
         log.info("\nsuccess: \n" + resp.Friends)
-        log.info("\n FrfriendWithPublicKeyMap value is " + friendWithPublicKeyMap)
-        if (friendWithPublicKeyMap.contains("User2")) {
-          log.info("sdlfkjlsdkfjals;kfjas;lkfjads;lfkjals;")
-        }
       }
     }
   }
@@ -444,12 +440,16 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     val clientPipeline = sendReceive
     ////val startTimeStamp = System.currentTimeMillis()
     import RegisterUserRequestProtocol._
-    /*TODO: Nounce And time stamp need to tbe added here. For replay attack*/
+    val publicKeyAndNounceFromServer = userRequestGetServerPublicKey_Get()
+
+    //val encryptedNounce = CryptoUtil.encryptRSA(publicKeyAndNounceFromServer.nounce, CryptoUtil.stringToPublicKey(new String(publicKeyAndNounceFromServer.str) ))
+
     val timeStamp = CryptoUtil.getCurrentTimeStamp.toString
-    val dataTobeSinged = s"$id+$name+$email+$timeStamp"
+    val dataTobeSinged = s"$id+$name+$email+$timeStamp+${publicKeyAndNounceFromServer.nounce}"
     println(" DataSinged " + dataTobeSinged)
     val signedData = CryptoUtil.signData(dataTobeSinged.getBytes(), privateKey)
-    val requestForRegister = RegisterUserRequest(id, name, email, timeStamp, signedData, CryptoUtil.publicKeyToString(publicKey))
+    val requestForRegister = RegisterUserRequest(id, name, email, timeStamp, publicKeyAndNounceFromServer.nounce, signedData,  CryptoUtil.publicKeyToString(publicKey))
+
     val response = clientPipeline {
       Put(url + "User/Register", requestForRegister)
     }
@@ -457,20 +457,14 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
     response onComplete {
       case Failure(ex) => {
         //ex.printStackTrace()
-        //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.error("Failure to register user ")
       }
       case Success(resp) => {
-        ////log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
         log.info("success: " + resp.status + resp.entity)
-        //log.info(s"User $name Is registered ")
       }
     }
   }
 
-  /*TODO: unregister a user or delete  a user
-  * TODO: Delete a post or unshare a post
-  * */
   def userPostMessageOwnWall_Put(id: Int, message: String): Unit = {
     val clientPipeline = sendReceive
     /*TODO: Generate A random Key  and iv */

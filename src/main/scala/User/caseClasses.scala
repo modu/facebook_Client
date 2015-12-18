@@ -30,7 +30,7 @@ object protocol {
 
   case class userRequestGetNewsFeed()
 
-  case class PostE(FromID: Int, toUserID: Int, encryptedMessage: String, encrypteKey: Array[Byte])
+  case class PostE(FromID: Int, toUserID: Int, encryptedMessage: String, encrypteKey: Array[Byte], iv :String)
 
   case class encryptedPostMessage(fromID: Int, toUserID: Int, encryptedMessage: String)
 
@@ -41,7 +41,7 @@ object protocol {
   case class postListAll(allPosts: List[PostE])
 
   /*Messages sent by User*/
-  case class RegisterUserRequest(id: Int, name: String, email: String, timeStamp: String, data: Array[Byte], publicKey: String)
+  case class RegisterUserRequest(id: Int, name: String, email: String, timeStamp: String, Nounce :String, data: Array[Byte], publicKey: String)
 
   case class UserPostMessageOwnWall(id: Int, message: String, friendNameWithKey: MapFriendNameWithEncryptedSymKeyWithFriendPubKey, timeStamp: String, data: Array[Byte])
 
@@ -55,7 +55,7 @@ object protocol {
 
   case class MapFriendNameWithEncryptedSymKeyWithFriendPubKey(mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend: Map[String, Array[Byte]])
 
-  case class takeThisPostAndKey(lastPost :String, newlyEncryptedSecreteKeyToBeSent :Array[Byte])
+  case class takeThisPostAndKey(lastPost :String, iv :String, newlyEncryptedSecreteKeyToBeSent :Array[Byte])
   //case class encryptedPost(mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend :Map[String,Array[Byte]])
 
   /*Sent by Server to client*/
@@ -65,7 +65,7 @@ object protocol {
     implicit val EncryptedPostF = jsonFormat3(EncryptedPost.apply)
     implicit val MapFriendNameWithEncryptedSymKeyWithFriendPubKeyF = jsonFormat1(MapFriendNameWithEncryptedSymKeyWithFriendPubKey.apply)
     implicit val MapPairOfMessageAndEncryptedKeyF = jsonFormat1(MapPairOfMessageAndEncryptedKey.apply)
-    implicit val PostEF = jsonFormat4(PostE.apply)
+    implicit val PostEF = jsonFormat5(PostE.apply)
     implicit val postListAllF = jsonFormat1(postListAll.apply)
 
   }
@@ -77,7 +77,7 @@ object protocol {
 
 
   object RegisterUserRequestProtocol extends DefaultJsonProtocol with SprayJsonSupport {
-    implicit val RegisterUserRequestf = jsonFormat6(RegisterUserRequest.apply)
+    implicit val RegisterUserRequestf = jsonFormat7(RegisterUserRequest.apply)
   }
 
   object UserPostMessageOwnWallProtocol extends DefaultJsonProtocol with SprayJsonSupport {
@@ -97,12 +97,14 @@ object protocol {
   }
 
   // Response from Server
-  case class publicKeyResponseFromServer(str: String)
+  case class publicKeyResponseFromServer(str: String, nounce: String)
+
+//  case class publicKeyResponseFromServer(str: Array[Byte], nounce: String)
 
   case class friendListsMap(Friends: Map[String, String])
 
   object publicKeyResponseFromServerProtocol extends DefaultJsonProtocol with SprayJsonSupport {
-    implicit val publicKeyResponseFromServerP = jsonFormat1(publicKeyResponseFromServer.apply)
+    implicit val publicKeyResponseFromServerP = jsonFormat2(publicKeyResponseFromServer.apply)
   }
 
   // images and private messages
