@@ -30,10 +30,20 @@ object protocol {
 
   case class userRequestGetNewsFeed()
 
-  /*Messages sent by User*/
-  case class RegisterUserRequest(id: Int, name: String, email: String, timeStamp :String, data: Array[Byte], publicKey: String)
+  case class PostE(FromID: Int, toUserID: Int, encryptedMessage: String, encrypteKey: Array[Byte])
 
-  case class UserPostMessageOwnWall(id: Int, message: String,friendNameWithKey :MapFriendNameWithEncryptedSymKeyWithFriendPubKey, timeStamp :String,  data :Array[Byte])
+  case class encryptedPostMessage(fromID: Int, toUserID: Int, encryptedMessage: String)
+
+  case class sendMeYourPosts(ofUserID: Int)
+
+  case class ShowYourPosts(orginalUserID :Int, publicKey :PublicKey)
+
+  case class postListAll(allPosts: List[PostE])
+
+  /*Messages sent by User*/
+  case class RegisterUserRequest(id: Int, name: String, email: String, timeStamp: String, data: Array[Byte], publicKey: String)
+
+  case class UserPostMessageOwnWall(id: Int, message: String, friendNameWithKey: MapFriendNameWithEncryptedSymKeyWithFriendPubKey, timeStamp: String, data: Array[Byte])
 
   case class FriendRequest(requesterID: Int, requestedToID: Int, message: String, data: Array[Byte])
 
@@ -41,19 +51,22 @@ object protocol {
 
   case class UserPostMessageOnAPage(pageId: Int, CreatorID: Int, message: String)
 
-  case class EncryptedPost(message :String , key :String, iv :String)
+  case class EncryptedPost(message: String, key: String, iv: String)
 
-  case class MapFriendNameWithEncryptedSymKeyWithFriendPubKey(mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend :Map[String , Array[Byte]])
+  case class MapFriendNameWithEncryptedSymKeyWithFriendPubKey(mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend: Map[String, Array[Byte]])
 
+  case class takeThisPostAndKey(lastPost :String, newlyEncryptedSecreteKeyToBeSent :Array[Byte])
   //case class encryptedPost(mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend :Map[String,Array[Byte]])
 
   /*Sent by Server to client*/
-  case class MapPairOfMessageAndEncryptedKey(mapOfMToE :Map[String, Array[Byte]])
+  case class MapPairOfMessageAndEncryptedKey(mapOfMToE: Map[String, Array[Byte]])
 
   object EncryptionProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val EncryptedPostF = jsonFormat3(EncryptedPost.apply)
     implicit val MapFriendNameWithEncryptedSymKeyWithFriendPubKeyF = jsonFormat1(MapFriendNameWithEncryptedSymKeyWithFriendPubKey.apply)
     implicit val MapPairOfMessageAndEncryptedKeyF = jsonFormat1(MapPairOfMessageAndEncryptedKey.apply)
+    implicit val PostEF = jsonFormat4(PostE.apply)
+    implicit val postListAllF = jsonFormat1(postListAll.apply)
 
   }
 
@@ -68,7 +81,9 @@ object protocol {
   }
 
   object UserPostMessageOwnWallProtocol extends DefaultJsonProtocol with SprayJsonSupport {
+
     import EncryptionProtocol._
+
     implicit val UserPostMessageOwnWallformat = jsonFormat5(UserPostMessageOwnWall.apply)
   }
 
@@ -82,8 +97,9 @@ object protocol {
   }
 
   // Response from Server
-  case class publicKeyResponseFromServer(str :String)
-  case class friendListsMap(Friends: Map[String ,String])
+  case class publicKeyResponseFromServer(str: String)
+
+  case class friendListsMap(Friends: Map[String, String])
 
   object publicKeyResponseFromServerProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     implicit val publicKeyResponseFromServerP = jsonFormat1(publicKeyResponseFromServer.apply)
@@ -123,7 +139,9 @@ object protocol {
   }
 
   object AlbumProtocol extends DefaultJsonProtocol with SprayJsonSupport {
+
     import ImageProtocol._
+
     implicit val format23 = jsonFormat1(Album.apply)
   }
 
@@ -149,9 +167,6 @@ object protocol {
   }
 
   // Album and Image
-
-
-
 
 
 }

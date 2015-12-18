@@ -82,6 +82,9 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
 
     system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
       userRequestFriendRequest_Post(1, 2, "Hi I wanna be Friends with you! :) "))
+
+    readLine()
+
     system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
       userRequestFriendRequest_Post(1, 3, "Hi I wanna be Friends with you! :) "))
     system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
@@ -90,27 +93,40 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
       userRequestFriendRequest_Post(2, 3, "Hi I wanna be Friends with you! :) "))
     system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 2),
       userRequestFriendRequest_Post(2, 4, "Hi I wanna be Friends with you! :) "))
-    readLine()
 
     system.scheduler.scheduleOnce(150 millisecond, context.actorFor("../User" + 1),
       userRequestGetFriendList_Get())
 
-    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
-      userRequestWallMessageUpdate_Post(s"This is  1 th Post of the user "))
-    readLine()
-    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
-      userRequestWallMessageUpdate_Post(s"This is  2nd Post of the user "))
     readLine()
 
-    system.scheduler.scheduleOnce(150 millisecond, context.actorFor("../User" + 3),
-      userRequestGetFriendList_Get())
+    context.actorFor("../User" + 1) ! encryptedPostMessage(1, 2, "Message sent from user 1 to User 2")
+
+    context.actorFor("../User" + 1) ! encryptedPostMessage(1, 3, "Message sent from user 1 to User 3")
+
+    context.actorFor("../User" + 1) ! encryptedPostMessage(1, 4, "Message sent from user 1 to User 4")
+
     readLine()
+    context.actorFor("../User" + 3) ! sendMeYourPosts(2)
+    readLine()
+    context.actorFor("../User" + 3) ! sendMeYourPosts(4)
 
-    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 3),
-      userRequestWallMessageUpdate_Post(s"This is  1st Post of the user "))
 
-    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 2),
-      userRequestGetNewsFeed())
+//    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
+//      userRequestWallMessageUpdate_Post(s"This is  1 th Post of the user "))
+//    readLine()
+//    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 1),
+//      userRequestWallMessageUpdate_Post(s"This is  2nd Post of the user "))
+//    readLine()
+//
+//    system.scheduler.scheduleOnce(150 millisecond, context.actorFor("../User" + 3),
+//      userRequestGetFriendList_Get())
+//    readLine()
+//
+//    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 3),
+//      userRequestWallMessageUpdate_Post(s"This is  1st Post of the user "))
+//
+//    system.scheduler.scheduleOnce(10 millisecond, context.actorFor("../User" + 2),
+//      userRequestGetNewsFeed())
 
   }
 

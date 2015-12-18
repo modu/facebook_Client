@@ -14,7 +14,10 @@ import sun.misc.{BASE64Decoder, BASE64Encoder}
  */
 object CryptoUtil {
 
-  val ALGORITHMRSA = "RSA"
+  val ALGORITHMRSA = "RSA/ECB/PKCS1PADDING"
+//  val cipher : Cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
+//  val cipherRsa : Cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING")
+
   /*
   Digital Signing  function:
   INPUT:
@@ -57,7 +60,7 @@ object CryptoUtil {
 
   def generateKeyPair() = {
     /*TODO:Generate truly Random Seed */
-    val keyGenerator: KeyPairGenerator = KeyPairGenerator.getInstance(ALGORITHMRSA)
+    val keyGenerator: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
 //    val rng: SecureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN")
 //    rng.setSeed(123123) /*Have to get the true seed here*/
     keyGenerator.initialize(1024)

@@ -2,6 +2,7 @@ package facebookClient
 
 import java.nio.file.{Paths, Files}
 import java.security.{SecureRandom, PublicKey}
+import javax.crypto.KeyGenerator
 import javax.xml.bind.DatatypeConverter
 
 import akka.event.Logging
@@ -25,7 +26,7 @@ http://stackoverflow.com/questions/630453/put-vs-post-in-rest
 */
 /*User Actor which does actual request  to server */
 
-class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
+class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
   val log = Logging(system, getClass)
   var name: String = "Name" + id
   var email: String = "EmailAddress" + id + "@gmail.com"
@@ -195,6 +196,83 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
         }
       }
     }
+    case encryptedPostMessage(fromID: Int, toUserID: Int, message: String) => {
+      /*encrypte message
+      * encrypte secret key
+      * sign it
+      * */
+      //friendWithPublicKeyMap.foreach( {x=> println(x._1) }     )
+      log.info("\n Friend liste slf   " + friendWithPublicKeyMap)
+      if (!friendWithPublicKeyMap.contains("User" + toUserID)) {
+        log.info("con't post! not such friend")
+      }
+      else {
+        val secreteKey = KeyGenerator.getInstance("AES").generateKey()
+        val encryptedMessage = CryptoUtil.encryptAES(secreteKey, "iv", message)
+        log.info("\n\nEnctyped using public key of USer " + toUserID + " \n")
+        val encryptedSecretKey = CryptoUtil.encryptRSAKey(secreteKey, CryptoUtil.stringToPublicKey(friendWithPublicKeyMap("User" + toUserID)))
+        val poste = PostE(fromID, toUserID, encryptedMessage, encryptedSecretKey)
+        log.info("Posting to User ")
+        val clientPipeline = sendReceive
+        import EncryptionProtocol._
+        val response = clientPipeline {
+          Post(url + "User/encryptedPost/" + toUserID, poste)
+        }
+        response onComplete {
+          case Failure(ex) => {
+            //ex.printStackTrace()
+            log.error("Failed to send message ")
+          }
+          case Success(resp) => {
+            log.info("success: Message Sent \n " + resp.entity)
+          }
+        }
+
+      }
+
+
+    }
+    case sendMeYourPosts(ofUserID: Int) => {
+
+      context.actorFor("../User" + ofUserID) ! ShowYourPosts(id, publicKey)
+
+    }
+
+    case ShowYourPosts(userHowAsked: Int, publicOfSender: PublicKey) => {
+      /*Now in user 2 */
+      import EncryptionProtocol._
+      val clientPipeline = sendReceive ~> unmarshal[postListAll]
+      val response = clientPipeline {
+        Get(url + "User/GetOwnPost/" + id)
+      }
+      response onComplete {
+        case Failure(ex) => {
+          //ex.printStackTrace()
+          log.error("Failed to create album ")
+        }
+        case Success(resp) => {
+          log.info("success: Received all posts  \n" + resp.allPosts.size)
+          var arra = resp.allPosts
+          if (arra.size == 0) {
+            log.info("Nothing Posted ")
+          }
+          else {
+            val lastPost = arra(arra.size - 1)
+            log.info("\n\nDecrypting using public key of USer " + id + " \n")
+            val decrypteSecretKey = CryptoUtil.decryptRSAKey(lastPost.encrypteKey, privateKey)
+
+            val newlyEncryptedSecreteKeyToBeSent = CryptoUtil.encryptRSAKey( decrypteSecretKey, publicOfSender)
+            context.actorFor("../User" + userHowAsked) ! takeThisPostAndKey(lastPost.encryptedMessage, newlyEncryptedSecreteKeyToBeSent)
+
+          }
+        }
+      }
+    }
+    case takeThisPostAndKey(postEncrypted: String, encryptedKey: Array[Byte]) => {
+      log.info("Received on userd 333 *************\n")
+      val decryptedSecretKey  = CryptoUtil.decryptRSAKey(encryptedKey, privateKey)
+      log.info(CryptoUtil.decryptAES(decryptedSecretKey , "iv", postEncrypted) )
+    }
 
     case userRequestGetMessage(id: Int) => {
       val clientPipeline = sendReceive
@@ -214,13 +292,12 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
       }
     }
     // images and private messages
-
   }
 
   def userRequestGetServerPublicKey_Get() = {
     import publicKeyResponseFromServerProtocol._
     //val response = publicKeyResponseFromServer("publicKey")
-    val clientPipeline  = sendReceive ~> unmarshal[publicKeyResponseFromServer]
+    val clientPipeline = sendReceive ~> unmarshal[publicKeyResponseFromServer]
     //:HttpRequest => Future[publicKeyResponseFromServer]
     val f = clientPipeline {
       Get(url + "GivePublicKeyOfServer")
@@ -231,8 +308,8 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
       }
       case Success(response) => {
         val clientCoordinatorService = system.actorSelection("akka://Facebook-Server/user/ClientCoorinator")
-        clientCoordinatorService ! setPublicKey( response.str )
-        log.info("\nsuccess: Your Messages\n" + CryptoUtil.stringToPublicKey( response.str )  )
+        clientCoordinatorService ! setPublicKey(response.str)
+        log.info("\nsuccess: Your Messages\n" + CryptoUtil.stringToPublicKey(response.str))
       }
     }
   }
@@ -293,8 +370,13 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
+        log.info("Friend LIst with public key s")
         friendWithPublicKeyMap = resp.Friends
         log.info("\nsuccess: \n" + resp.Friends)
+        log.info("\n FrfriendWithPublicKeyMap value is " + friendWithPublicKeyMap)
+        if (friendWithPublicKeyMap.contains("User2")) {
+          log.info("sdlfkjlsdkfjals;kfjas;lkfjads;lfkjals;")
+        }
       }
     }
   }
@@ -367,7 +449,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
     val dataTobeSinged = s"$id+$name+$email+$timeStamp"
     println(" DataSinged " + dataTobeSinged)
     val signedData = CryptoUtil.signData(dataTobeSinged.getBytes(), privateKey)
-    val requestForRegister = RegisterUserRequest(id, name, email, timeStamp, signedData, CryptoUtil.publicKeyToString(publicKey) )
+    val requestForRegister = RegisterUserRequest(id, name, email, timeStamp, signedData, CryptoUtil.publicKeyToString(publicKey))
     val response = clientPipeline {
       Put(url + "User/Register", requestForRegister)
     }
@@ -392,30 +474,32 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
   def userPostMessageOwnWall_Put(id: Int, message: String): Unit = {
     val clientPipeline = sendReceive
     /*TODO: Generate A random Key  and iv */
-    posts += "key"->message
+    posts += "key" -> message
     //import EncryptionProtocol._
     //    var temp  = EncryptedPost(message,"key", "iv")
 
     /*Saving post in local copy */
-    var rand :SecureRandom= new SecureRandom();
-    //log.info("\n Verifying rand is actually random " + rand +"\n")
-    encryptedPosts = EncryptedPost(message,"key", "iv") :: encryptedPosts
+    var rand: SecureRandom = new SecureRandom();
 
-    val encryptedMessage = CryptoUtil.encryptAES(CryptoUtil.keyToSpec("Key"), "iv" ,message )
+    //log.info("\n Verifying rand is actually random " + rand +"\n")
+    encryptedPosts = EncryptedPost(message, "key", "iv") :: encryptedPosts
+
+    val encryptedMessage = CryptoUtil.encryptAES(CryptoUtil.keyToSpec("Key"), "iv", message)
 
     /*Generate another map which contains friends Name ->FriendPUbKey(k) */
     var localMap = Map[String, Array[Byte]]()
 
-    localMap += ("Key" -> CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("Key"), publicKey ) )
-    localMap += ("iv"  -> CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("iv"), publicKey ))
+    localMap += ("Key" -> CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("Key"), publicKey))
+    localMap += ("iv" -> CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("iv"), publicKey))
 
     /*For each friend , Encrypt "AES Key" using friends public Key*/
     friendWithPublicKeyMap.foreach { friendsNamePublicKeyPair => {
-      val byteArrayEncrypted = CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("Key"), CryptoUtil.stringToPublicKey( friendsNamePublicKeyPair._2) )
+      val byteArrayEncrypted = CryptoUtil.encryptRSAKey(CryptoUtil.keyToSpec("Key"), CryptoUtil.stringToPublicKey(friendsNamePublicKeyPair._2))
 
       localMap += (friendsNamePublicKeyPair._1 -> byteArrayEncrypted)
 
-    } }
+    }
+    }
     val tobeSent = MapFriendNameWithEncryptedSymKeyWithFriendPubKey(localMap)
     log.info("\n" + localMap + "\n")
     log.info("\n" + tobeSent.mapOfFriendNameWithEncryptedPostKeyWithPubKeyOfFriend + "\n")
@@ -426,7 +510,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
 
     import UserPostMessageOwnWallProtocol._
     val response = clientPipeline {
-      Put(url + "User/Post/" + id, UserPostMessageOwnWall(id, encryptedMessage ,tobeSent, timeStamp, signedData))
+      Put(url + "User/Post/" + id, UserPostMessageOwnWall(id, encryptedMessage, tobeSent, timeStamp, signedData))
     }
     response onComplete {
       case Failure(ex) => {
@@ -435,7 +519,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
       }
       case Success(resp) => {
         //log.info(s"Request completed in ${System.currentTimeMillis() - startTimestamp} millis.")
-        log.info("success: Post Success" + resp.status + "  " + resp.entity )
+        log.info("success: Post Success" + resp.status + "  " + resp.entity)
       }
     }
   }
@@ -468,7 +552,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
     log.info(" DataSinged " + dataTobeSinged)
     val signedData = CryptoUtil.signData(dataTobeSinged.getBytes(), privateKey)
     val response = clientPipeline {
-      Post(url + "User/FriendRequest", FriendRequest(id, friendsID, message ,  signedData ))
+      Post(url + "User/FriendRequest", FriendRequest(id, friendsID, message, signedData))
     }
     response onComplete {
       case Failure(ex) => {
@@ -484,7 +568,6 @@ class User(id: Int, activityRate: Int, system: ActorSystem ) extends Actor {
   private def killYourself = self ! PoisonPill
 
 }
-
 
 
 //val keyPairs = CryptoUtil.generateKeyPair()
