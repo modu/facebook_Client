@@ -30,7 +30,7 @@ object protocol {
 
   case class userRequestGetNewsFeed()
 
-  case class PostE(FromID: Int, toUserID: Int, encryptedMessage: String, encrypteKey: Array[Byte], iv :String)
+  case class PostE(FromID: Int, toUserID: Int, encryptedMessage: String, signedData :Array[Byte], encrypteKey: Array[Byte], iv :String)
 
   case class encryptedPostMessage(fromID: Int, toUserID: Int, encryptedMessage: String)
 
@@ -65,7 +65,7 @@ object protocol {
     implicit val EncryptedPostF = jsonFormat3(EncryptedPost.apply)
     implicit val MapFriendNameWithEncryptedSymKeyWithFriendPubKeyF = jsonFormat1(MapFriendNameWithEncryptedSymKeyWithFriendPubKey.apply)
     implicit val MapPairOfMessageAndEncryptedKeyF = jsonFormat1(MapPairOfMessageAndEncryptedKey.apply)
-    implicit val PostEF = jsonFormat5(PostE.apply)
+    implicit val PostEF = jsonFormat6(PostE.apply)
     implicit val postListAllF = jsonFormat1(postListAll.apply)
 
   }

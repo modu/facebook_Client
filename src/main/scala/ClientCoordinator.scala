@@ -42,20 +42,20 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
 
   def test(system: ActorSystem): Unit = {
     import system.dispatcher
-    val numberOfUser = 100
+    val numberOfUser = 10
     for (i <- 1 to numberOfUser) {
       system.actorOf(Props(new User(i, 3, system)), name = "User" + i)
     }
     readLine()
 
-    log.info("\t\t Registration Of User Starts \n\n")
+    log.info("\n\n Registration Of User Starts \n\n")
 
     for (i <- 1 to numberOfUser) {
       context.actorFor("../User" + i) ! userRequestRegister_Put(i, "Name" + i, "EmailAddress" + i + "@gmail.com")
       Thread.sleep(100)
     }
     readLine()
-    log.info("\t\t Friend Request Sending by user \n\n")
+    log.info("\n\n********************   Sending Friend Request by user ********************\n\n")
 
     for (i <- 1 to numberOfUser - 6) {
       context.actorFor("../User" + i) ! userRequestFriendRequest_Post(i, i + 1, "Hi I wanna be Friends with you! :) ")
@@ -67,25 +67,25 @@ class ClientCoordinator(totalUsers: Int, modelNumber: Int, system: ActorSystem) 
     }
     readLine()
 
-    log.info("\t\t Getting Friend Lists with there public keys \n\n")
+    log.info("\n\n ********************   Getting Friend Lists with there public keys ********************\n\n")
 
     for (i <- 1 to numberOfUser - 6) {
       context.actorFor("../User" + i) ! userRequestGetFriendList_Get()
     }
+
     readLine()
 
-    log.info("\t\t Posting On User Wall \n\n")
+    log.info("\n\n********************   Posting On User Wall ********************\n\n")
 
     for (i <- 1 to numberOfUser - 6) {
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 1, s"Post sent from user $i to User ${i + 1}")
+      readLine()
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 2, s"Post sent from user $i to User ${i + 2}")
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 3, s"Post sent from user $i to User ${i + 3}")
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 4, s"Post sent from user $i to User ${i + 4}")
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 5, s"Post sent from user $i to User ${i + 5}")
       context.actorFor("../User" + i) ! encryptedPostMessage(i, i + 6, s"Post sent from user $i to User ${i + 6}")
     }
-
-    readLine()
 
     readLine()
     for (i <- 1 to numberOfUser - 6) {

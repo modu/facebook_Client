@@ -197,23 +197,23 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
       }
     }
     case encryptedPostMessage(fromID: Int, toUserID: Int, message: String) => {
-      /*encrypte message
-      * encrypte secret key
+      /*encrypted message
+      * encrypted secret key
       * sign it
       * */
-      //friendWithPublicKeyMap.foreach( {x=> println(x._1) }     )
-      log.info("\n Friend liste slf   " + friendWithPublicKeyMap)
+      log.info("\n Friend List self   " + friendWithPublicKeyMap)
       if (!friendWithPublicKeyMap.contains("User" + toUserID)) {
-        log.info("con't post! not such friend")
+        log.info("can't post! no such friend")
       }
       else {
         val secreteKey = KeyGenerator.getInstance("AES").generateKey()
         val iv = CryptoUtil.getRandom()
         val encryptedMessage = CryptoUtil.encryptAES(secreteKey, iv, message)
-        log.info("\n\nEnctyped using public key of USer " + toUserID + " \n")
         val encryptedSecretKey = CryptoUtil.encryptRSAKey(secreteKey, CryptoUtil.stringToPublicKey(friendWithPublicKeyMap("User" + toUserID)))
-        val poste = PostE(fromID, toUserID, encryptedMessage, encryptedSecretKey, iv)
-        log.info("Posting to User ")
+        val dataTobeSinged = s"$fromID+$toUserID+$encryptedMessage"
+        val signedData = CryptoUtil.signData(dataTobeSinged.getBytes(), privateKey)
+        //log.info("Public Key of User \n\n" + publicKey)
+        val poste = PostE(fromID, toUserID, encryptedMessage, signedData, encryptedSecretKey, iv)
         val clientPipeline = sendReceive
         import EncryptionProtocol._
         val response = clientPipeline {
@@ -228,10 +228,7 @@ class User(id: Int, activityRate: Int, system: ActorSystem) extends Actor {
             log.info("success: Message Sent \n " + resp.entity)
           }
         }
-
       }
-
-
     }
     case sendMeYourPosts(ofUserID: Int) => {
 

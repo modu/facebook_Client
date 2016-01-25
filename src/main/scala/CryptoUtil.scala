@@ -62,7 +62,7 @@ object CryptoUtil {
   def generateKeyPair() = {
     /*TODO:Generate truly Random Seed */
     val keyGenerator: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
-    keyGenerator.initialize(1024)
+    keyGenerator.initialize(2048)
     keyGenerator.generateKeyPair() /*key pair will be */
   }
 
